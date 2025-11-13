@@ -20,6 +20,9 @@
                 <Separator />
                 <MenuItem Header="_Exit" />
             </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem Header="_Verify Patches" Command="{Binding OpenPatchViewCommand}"/>
+            </MenuItem>
         </Menu>
         <StatusBar DockPanel.Dock="Bottom" Margin="5" Background="{StaticResource PrimaryGrayBrush}">
             <StatusBarItem>

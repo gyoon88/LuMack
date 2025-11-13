@@ -21,6 +21,7 @@ namespace LuMack.ViewModels
             set
             {
                 SetProperty(ref mainImage, value);
+                OnImageChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -102,6 +103,7 @@ namespace LuMack.ViewModels
         public ICommand SaveMaskCommand { get; }
         public ICommand AddClassCommand { get; }
         public ICommand AssignClassCommand { get; }
+        public ICommand OpenPatchViewCommand { get; }
 
 
         public MainViewModel()
@@ -114,6 +116,7 @@ namespace LuMack.ViewModels
             SaveMaskCommand = new RelayCommand(SaveMask);
             AddClassCommand = new RelayCommand(AddClass);
             AssignClassCommand = new RelayCommand(AssignClass, CanAssignClass);
+            OpenPatchViewCommand = new RelayCommand(OpenPatchView);
 
             // Initialize default class labels
             MaskClasses.Add(new MaskClass { Name = "Unclassified", DisplayColor = Colors.Gray });
@@ -122,6 +125,16 @@ namespace LuMack.ViewModels
             MaskClasses.Add(new MaskClass { Name = "Space", DisplayColor = Colors.LawnGreen });
 
             SelectedMaskClass = MaskClasses.FirstOrDefault();
+        }
+
+        private void OpenPatchView(object? obj)
+        {
+            var patchViewModel = new PatchViewModel(this);
+            var patchView = new Views.PatchView
+            {
+                DataContext = patchViewModel
+            };
+            patchView.Show();
         }
 
 

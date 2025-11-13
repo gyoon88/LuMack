@@ -9,7 +9,11 @@ namespace LuMack.Models
         public System.Windows.Point Coordinate
         {
             get => coordinate;
-            set => SetProperty(ref coordinate, value);
+            set
+            {
+                SetProperty(ref coordinate, value);
+                OnPropertyChanged(nameof(DisplayName));
+            }
         }
 
         private BitmapSource? imagePatch;

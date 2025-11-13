@@ -7,12 +7,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>iconfinder-technologymachineelectronicdevice38-4026422_113331.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="iconfinder-technologymachineelectronicdevice38-4026422_113331.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Models\" />
     <Folder Include="Commands\" />
     <Folder Include="ViewModels\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
   </ItemGroup>
 
 </Project>
