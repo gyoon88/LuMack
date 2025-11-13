@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LuMack.Views"
         xmlns:viewModels="clr-namespace:LuMack.ViewModels"
+        xmlns:models="clr-namespace:LuMack.Models"
         mc:Ignorable="d"
         Title="LuMack - Mask Labeling Tool" Height="800" Width="1200">
     <Window.DataContext>
@@ -19,22 +20,9 @@
                 <Separator />
                 <MenuItem Header="_Exit" />
             </MenuItem>
-            <MenuItem Header="_File">
-                <MenuItem Header="_Open Image" Command="{Binding OpenImageCommand}"/>
-                <MenuItem Header="_Load Recipe" Command="{Binding LoadRecipeCommand}"/>
-                <MenuItem Header="_Save Mask" Command="{Binding SaveMaskCommand}"/>
-                <Separator />
-                <MenuItem Header="_Exit" />
-            </MenuItem>
-            <MenuItem Header="_File">
-                <MenuItem Header="_Open Image" Command="{Binding OpenImageCommand}"/>
-                <MenuItem Header="_Load Recipe" Command="{Binding LoadRecipeCommand}"/>
-                <MenuItem Header="_Save Mask" Command="{Binding SaveMaskCommand}"/>
-                <Separator />
-                <MenuItem Header="_Exit" />
-            </MenuItem>
         </Menu>
-        <StatusBar DockPanel.Dock="Bottom" Margin="5" Background="{StaticResource PrimaryGrayBrush}">            <StatusBarItem>
+        <StatusBar DockPanel.Dock="Bottom" Margin="5" Background="{StaticResource PrimaryGrayBrush}">
+            <StatusBarItem>
                 <TextBlock Text="{Binding MousePositionText, FallbackValue='X: ---, Y: ---'}" Foreground="White"/>
             </StatusBarItem>
             <Separator/>
@@ -44,6 +32,10 @@
             <Separator/>
             <StatusBarItem>
                 <TextBlock Text="{Binding ZoomLevelText, FallbackValue='Zoom: 100%'}" Foreground="White"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText, FallbackValue='Ready'}" Foreground="White"/>
             </StatusBarItem>
         </StatusBar>
         <Grid>
@@ -70,69 +62,100 @@
                     <Image x:Name="MainImage" Source="{Binding MainImage}" Stretch="Uniform" SizeChanged="MainImage_SizeChanged" />
 
                     <ItemsControl x:Name="MasksControl" ItemsSource="{Binding Masks}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <Canvas />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Path Data="{Binding MaskGeometry}" 
-                                      Fill="{Binding DisplayColor, Converter={StaticResource ColorToBrushConverter}}" 
-                                      Opacity="0.5"
-                                      Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <Path.Style>
-                                        <Style TargetType="Path">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                    <Setter Property="Stroke" Value="{StaticResource AccentGradientBrush}" />
-                                                    <Setter Property="StrokeThickness" Value="2" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Path.Style>
-                                </Path>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <Grid />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type models:Mask}">
+                                <Image Source="{Binding MaskImage}" 
+                                       Opacity="0.5"
+                                       Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Grid>
             </Border>
 
-            <DockPanel Grid.Column="1" Margin="0, 5, 10, 10">
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,0">
-                    <TextBlock Text="Mask Layers" FontWeight="Bold" VerticalAlignment="Center" Foreground="White"/>
-                    <ToggleButton Content="Edit Mode" IsChecked="{Binding IsEditMode}" Margin="10,0,0,0"/>
-                </StackPanel>
-                <ListBox ItemsSource="{Binding Masks}" 
-                         SelectedItem="{Binding SelectedMask, Mode=TwoWay}"
-                         HorizontalContentAlignment="Stretch">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border BorderBrush="Black" BorderThickness="1" Padding="5" Margin="2">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+            <Grid Grid.Column="1" Margin="0, 5, 10, 10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                                    <CheckBox Grid.Row="0" Grid.Column="0" IsChecked="{Binding IsVisible}" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" Margin="5,0" BorderThickness="0" Background="Transparent"/>
-                                    <Rectangle Grid.Row="0" Grid.Column="2" Width="16" Height="16" Fill="{Binding DisplayColor, Converter={StaticResource ColorToBrushConverter}}" Stroke="Black" StrokeThickness="1"/>
+                <DockPanel Grid.Row="0">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Mask Layers" FontWeight="Bold" VerticalAlignment="Center" Foreground="White"/>
+                        <ToggleButton Content="Edit Mode" IsChecked="{Binding IsEditMode}" Margin="10,0,0,0"/>
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Masks}" 
+                             SelectedItem="{Binding SelectedMask, Mode=TwoWay}"
+                             HorizontalContentAlignment="Stretch">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type models:Mask}">
+                                <Border BorderBrush="DarkGray" BorderThickness="0.5" Padding="5" Margin="2">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                                    <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,5,0,0"
-                                              ItemsSource="{Binding DataContext.ClassLabels, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                              SelectedItem="{Binding ClassLabel}"/>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
+                                        <CheckBox Grid.Row="0" Grid.Column="0" IsChecked="{Binding IsVisible}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" Margin="5,0" BorderThickness="0" Background="Transparent" Foreground="White"/>
+                                        <Rectangle Grid.Row="0" Grid.Column="2" Width="16" Height="16" 
+                                                   Fill="{Binding MaskClass.DisplayColor, Converter={StaticResource ColorToBrushConverter}, FallbackValue=Gray}" 
+                                                   Stroke="Black" StrokeThickness="1"/>
+                                        
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MaskClass.Name}" Foreground="Gray" Margin="5,2,0,0" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+
+                <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" Background="DarkGray" Margin="0,5"/>
+
+                <DockPanel Grid.Row="2">
+                    <TextBlock DockPanel.Dock="Top" Text="Classes" FontWeight="Bold" VerticalAlignment="Center" Foreground="White" Margin="0,5,0,5"/>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0">
+                        <Button Content="Add Class" Command="{Binding AddClassCommand}" Margin="0,0,5,0"/>
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding MaskClasses}"
+                             SelectedItem="{Binding SelectedMaskClass, Mode=TwoWay}"
+                             HorizontalContentAlignment="Stretch">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type models:MaskClass}">
+                                <RadioButton GroupName="MaskClassSelection"
+                                             Checked="ClassRadioButton_Checked">
+                                    <RadioButton.IsChecked>
+                                        <MultiBinding Converter="{StaticResource ObjectEqualityToBooleanConverter}" Mode="OneWay">
+                                            <Binding />
+                                            <Binding Path="DataContext.SelectedMask.MaskClass" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                        </MultiBinding>
+                                    </RadioButton.IsChecked>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Text="{Binding Name, Mode=TwoWay}" VerticalAlignment="Center" Foreground="White" Background="Transparent" BorderThickness="0"/>
+                                        <Rectangle Grid.Column="1" Width="16" Height="16" 
+                                                   Fill="{Binding DisplayColor, Converter={StaticResource ColorToBrushConverter}}" 
+                                                   Stroke="Black" StrokeThickness="1" Margin="5,0,0,0"/>
+                                    </Grid>
+                                </RadioButton>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Grid>
         </Grid>
     </DockPanel>
 </Window>

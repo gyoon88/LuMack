@@ -56,15 +56,8 @@ namespace LuMack.Views
         {
             ImageScaleTransform.ScaleX = 1;
             ImageScaleTransform.ScaleY = 1;
-
-            // Center the image
-            var viewportWidth = ImageBorder.ActualWidth;
-            var viewportHeight = ImageBorder.ActualHeight;
-            var contentWidth = MainImage.RenderSize.Width;
-            var contentHeight = MainImage.RenderSize.Height;
-
-            ImageTranslateTransform.X = (viewportWidth - contentWidth) / 2;
-            ImageTranslateTransform.Y = (viewportHeight - contentHeight) / 2;
+            ImageTranslateTransform.X = 0;
+            ImageTranslateTransform.Y = 0;
             
             ApplyConstraints();
             UpdateZoomText();
@@ -164,14 +157,30 @@ namespace LuMack.Views
 
         private void ApplyConstraints()
         {
-            if (ViewModel?.MainImage == null || !_isInitialised) return;
+            if (ViewModel?.MainImage is not BitmapSource source || !_isInitialised) return;
 
             var scale = ImageScaleTransform.ScaleX;
             var viewportWidth = ImageBorder.ActualWidth;
             var viewportHeight = ImageBorder.ActualHeight;
 
-            var contentWidth = MainImage.RenderSize.Width * scale;
-            var contentHeight = MainImage.RenderSize.Height * scale;
+            // Determine the size of the image at scale=1 (when it's fitting the viewport)
+            var sourceAspect = source.PixelWidth / (double)source.PixelHeight;
+            var viewportAspect = viewportWidth / viewportHeight;
+
+            double widthAtScale1, heightAtScale1;
+            if (sourceAspect > viewportAspect)
+            {
+                widthAtScale1 = viewportWidth;
+                heightAtScale1 = viewportWidth / sourceAspect;
+            }
+            else
+            {
+                heightAtScale1 = viewportHeight;
+                widthAtScale1 = viewportHeight * sourceAspect;
+            }
+
+            var contentWidth = widthAtScale1 * scale;
+            var contentHeight = heightAtScale1 * scale;
 
             var minX = viewportWidth - contentWidth;
             var minY = viewportHeight - contentHeight;
@@ -179,8 +188,19 @@ namespace LuMack.Views
             var currentX = ImageTranslateTransform.X;
             var currentY = ImageTranslateTransform.Y;
 
-            var newX = (contentWidth < viewportWidth) ? (viewportWidth - contentWidth) / 2 : Math.Max(minX, Math.Min(0, currentX));
-            var newY = (contentHeight < viewportHeight) ? (viewportHeight - contentHeight) / 2 : Math.Max(minY, Math.Min(0, currentY));
+            // Clamp the current translation
+            var newX = Math.Max(minX, Math.Min(0, currentX));
+            var newY = Math.Max(minY, Math.Min(0, currentY));
+
+            // If content is smaller than viewport, override clamp and center it
+            if (contentWidth < viewportWidth)
+            {
+                newX = (viewportWidth - contentWidth) / 2;
+            }
+            if (contentHeight < viewportHeight)
+            {
+                newY = (viewportHeight - contentHeight) / 2;
+            }
 
             ImageTranslateTransform.X = newX;
             ImageTranslateTransform.Y = newY;
@@ -192,20 +212,66 @@ namespace LuMack.Views
             ViewModel.ZoomLevelText = $"Zoom: {ImageScaleTransform.ScaleX:P0}";
         }
 
+        private void ClassRadioButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not RadioButton radioButton) return;
+            if (ViewModel?.SelectedMask == null) return;
+            if (radioButton.DataContext is not Models.MaskClass selectedClass) return;
+
+            // Avoid redundant updates
+            if (ViewModel.SelectedMask.MaskClass != selectedClass)
+            {
+                ViewModel.SelectedMask.MaskClass = selectedClass;
+            }
+        }
+
         private void DrawOnMask(Point position)
         {
-            if (ViewModel?.SelectedMask == null) return;
+            if (ViewModel?.SelectedMask?.MaskImage is not WriteableBitmap bitmap) return;
 
-            var geometryGroup = ViewModel.SelectedMask.MaskGeometry as GeometryGroup;
-            if (geometryGroup == null)
+            var brushSize = 10; // A reasonable default brush size
+            var color = ViewModel.SelectedMask.MaskClass?.DisplayColor ?? Colors.Red;
+
+            // Pre-calculate color components for performance
+            byte b = color.B;
+            byte g = color.G;
+            byte r = color.R;
+            byte a = color.A;
+
+            try
             {
-                geometryGroup = new GeometryGroup();
-                ViewModel.SelectedMask.MaskGeometry = geometryGroup;
-            }
+                bitmap.Lock();
 
-            var brushSize = 5;
-            var newRect = new RectangleGeometry(new Rect(position.X - brushSize / 2.0, position.Y - brushSize / 2.0, brushSize, brushSize));
-            geometryGroup.Children.Add(newRect);
+                int startX = (int)position.X - brushSize / 2;
+                int startY = (int)position.Y - brushSize / 2;
+
+                for (int i = 0; i < brushSize; i++)
+                {
+                    for (int j = 0; j < brushSize; j++)
+                    {
+                        int x = startX + i;
+                        int y = startY + j;
+
+                        if (x >= 0 && x < bitmap.PixelWidth && y >= 0 && y < bitmap.PixelHeight)
+                        {
+                            unsafe
+                            {
+                                IntPtr pBackBuffer = bitmap.BackBuffer;
+                                pBackBuffer += y * bitmap.BackBufferStride;
+                                pBackBuffer += x * 4;
+                                *((int*)pBackBuffer) = (a << 24) | (r << 16) | (g << 8) | b;
+                            }
+                        }
+                    }
+                }
+
+                // Specify the area of the bitmap that changed
+                bitmap.AddDirtyRect(new Int32Rect(startX, startY, brushSize, brushSize));
+            }
+            finally
+            {
+                bitmap.Unlock();
+            }
         }
 
         private void UpdateStatusBar(Point mousePos, double imageControlActualWidth, double imageControlActualHeight)

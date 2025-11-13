@@ -1,10 +1,14 @@
 using System.Windows.Media;
 using LuMack.Common;
+using System.Windows.Media.Imaging;
+using System.Media;
 
 namespace LuMack.Models
 {
     public class Mask : BindableBase
     {
+        public Guid Id { get; } = Guid.NewGuid();
+
         private string name = "New Mask";
         public string Name
         {
@@ -19,11 +23,11 @@ namespace LuMack.Models
             set => SetProperty(ref rleData, value);
         }
 
-        private string classLabel = "Unclassified";
-        public string ClassLabel
+        private MaskClass? maskClass;
+        public MaskClass? MaskClass
         {
-            get => classLabel;
-            set => SetProperty(ref classLabel, value);
+            get => maskClass;
+            set => SetProperty(ref maskClass, value);
         }
 
         private bool isVisible = true;
@@ -33,18 +37,11 @@ namespace LuMack.Models
             set => SetProperty(ref isVisible, value);
         }
 
-        private Color displayColor = Colors.Red;
-        public Color DisplayColor
+        private BitmapSource? maskImage;
+        public BitmapSource? MaskImage
         {
-            get => displayColor;
-            set => SetProperty(ref displayColor, value);
-        }
-
-        private Geometry? maskGeometry;
-        public Geometry? MaskGeometry
-        {
-            get => maskGeometry;
-            set => SetProperty(ref maskGeometry, value);
+            get => maskImage;
+            set => SetProperty(ref maskImage, value);
         }
     }
 }

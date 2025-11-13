@@ -6,8 +6,9 @@
              StartupUri="Views/MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <!--<converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-            <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />-->
+            <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />
+            <converters:ObjectEqualityToBooleanConverter x:Key="ObjectEqualityToBooleanConverter" />
 
             <!-- Color Palette -->
             <Color x:Key="WindowBackgroundColor">#FF1C1C1C</Color>
